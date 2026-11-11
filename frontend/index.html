@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>电路传递函数实验台 · 自动控制原理</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">
+        <svg viewBox="0 0 40 40" aria-hidden="true">
+          <path d="M4 20 Q10 6 16 20 T28 20 T36 14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+          <circle cx="20" cy="20" r="17" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".35"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>电路传递函数实验台</h1>
+        <p>拖动元件搭建有源 / 无源网络 · 自动求解 H(s) · 时域波形仿真</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <label class="switch" title="电路变化后自动重新求解">
+        <input type="checkbox" id="autoSolve" checked>
+        <span>自动求解</span>
+      </label>
+      <button class="btn btn-primary" id="btnSolve">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M4 12l5 5L20 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        计算传递函数
+      </button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- 左侧：元件库 + 属性 -->
+    <aside class="sidebar">
+      <section class="panel">
+        <div class="panel-head"><h2>元件库</h2><span class="tag">拖入画布</span></div>
+        <div class="palette" id="palette"></div>
+      </section>
+      <section class="panel grow">
+        <div class="panel-head"><h2>元件属性</h2></div>
+        <div class="inspector" id="inspector">
+          <div class="empty">未选中元件<br><small>点击画布中的元件进行编辑</small></div>
+        </div>
+      </section>
+    </aside>
+
+    <!-- 中间：电路画布 -->
+    <section class="canvas-wrap">
+      <div class="canvas-toolbar">
+        <div class="tool-group">
+          <select id="exampleSelect" class="select">
+            <option value="">载入示例电路…</option>
+          </select>
+        </div>
+        <div class="tool-group right">
+          <span class="canvas-tip" id="canvasTip">点击引脚连线 · 滚轮缩放 · 拖拽空白平移</span>
+          <div class="zoom-group">
+            <button class="icon-btn" id="btnZoomOut" title="缩小">−</button>
+            <span class="zoom-level" id="zoomLevel">100%</span>
+            <button class="icon-btn" id="btnZoomIn" title="放大">＋</button>
+          </div>
+          <button class="btn btn-ghost" id="btnFit" title="缩放到适应窗口">适应窗口</button>
+          <button class="btn btn-ghost" id="btnClear" title="清空画布">清空</button>
+        </div>
+      </div>
+      <div class="board-shell" id="boardShell">
+        <svg id="board" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="board-empty" id="boardEmpty">
+          <div class="be-icon">＋</div>
+          <p>把左侧元件拖到这里开始搭建电路</p>
+          <small>或者从右上角载入一个示例</small>
+        </div>
+      </div>
+      <div class="statusbar" id="statusbar">
+        <span class="dot"></span><span id="statusText">等待搭建电路</span>
+      </div>
+    </section>
+
+    <!-- 右侧：结果 -->
+    <aside class="result">
+      <nav class="tabs" id="tabs">
+        <button class="tab active" data-tab="tf">传递函数</button>
+        <button class="tab" data-tab="imp">复阻抗法</button>
+        <button class="tab" data-tab="eq">电路方程法</button>
+        <button class="tab" data-tab="sim">波形仿真</button>
+      </nav>
+
+      <div class="tab-body">
+        <!-- 传递函数 -->
+        <div class="tab-pane active" data-pane="tf">
+          <div id="tfContent" class="placeholder">
+            <p>尚未求解</p>
+            <small>搭好电路后点击「计算传递函数」</small>
+          </div>
+        </div>
+        <!-- 复阻抗法 -->
+        <div class="tab-pane" data-pane="imp">
+          <div id="impContent" class="placeholder"><p>等待求解</p></div>
+        </div>
+        <!-- 电路方程法 -->
+        <div class="tab-pane" data-pane="eq">
+          <div id="eqContent" class="placeholder"><p>等待求解</p></div>
+        </div>
+        <!-- 仿真 -->
+        <div class="tab-pane" data-pane="sim">
+          <div class="signal-panel">
+            <div class="seg" id="signalTypes">
+              <button class="seg-item active" data-signal="step">阶跃</button>
+              <button class="seg-item" data-signal="square">方波</button>
+              <button class="seg-item" data-signal="ramp">斜坡</button>
+              <button class="seg-item" data-signal="accel">加速度</button>
+              <button class="seg-item" data-signal="sine">正弦</button>
+            </div>
+            <div class="form-grid">
+              <label class="field">
+                <span>幅值 A <em id="ampUnit">(V)</em></span>
+                <input type="number" id="sigAmp" value="1" step="0.1">
+              </label>
+              <label class="field" id="fieldFreq">
+                <span>频率 f (Hz)</span>
+                <input type="number" id="sigFreq" value="50" step="1" min="0.01">
+              </label>
+              <label class="field" id="fieldDuty">
+                <span>占空比 (%)</span>
+                <input type="number" id="sigDuty" value="50" step="5" min="5" max="95">
+              </label>
+              <label class="field">
+                <span>仿真时长 (s)</span>
+                <input type="number" id="sigEnd" value="0" step="0.001" min="0">
+              </label>
+            </div>
+            <div class="row-between">
+              <small class="muted">时长填 0 表示按系统时间常数自动选择</small>
+              <button class="btn btn-primary" id="btnSim">运行仿真</button>
+            </div>
+          </div>
+
+          <div class="charts">
+            <div class="chart-card">
+              <div class="chart-head"><h3>输入 u(t)</h3><span class="legend in">激励</span></div>
+              <canvas id="chartU" height="150"></canvas>
+            </div>
+            <div class="chart-card">
+              <div class="chart-head"><h3>输出 y(t)</h3><span class="legend out">响应</span></div>
+              <canvas id="chartY" height="190"></canvas>
+            </div>
+          </div>
+          <div id="metrics" class="metrics"></div>
+        </div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/latex.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/plot.js"></script>
+<script src="js/examples.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# 虚拟环境与构建中间产物
+.build_venv/
+build/
+dist/
+*.spec
+
+# 打包分发包
+*.zip
+
+# 截图与临时文件
+.screenshots/
+.tmp/
+.trae-html-share-packages/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
