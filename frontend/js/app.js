@@ -93,7 +93,7 @@
 
   function renderInspector(sel) {
     if (!sel || sel.kind !== 'comp') {
-      inspector.innerHTML = '<div class="empty">未选中元件<br><small>点击画布中的元件进行编辑</small></div>';
+      inspector.innerHTML = '<div class="empty">未选中元件<br><small>单击元件选中，双击可直接改参数</small></div>';
       return;
     }
     const comp = editor.findComp(sel.id);
@@ -523,6 +523,15 @@
     bindToolbar();
 
     editor.on('select', (sel) => renderInspector(sel));
+    // 双击元件：参数面板常驻，并直接聚焦输入框，方便马上改数值
+    editor.on('activate', (sel) => {
+      renderInspector(sel);
+      const input = inspector.querySelector('input');
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    });
     editor.on('change', () => {
       emptyHint.classList.toggle('hide', !editor.isEmpty());
       scheduleSolve();

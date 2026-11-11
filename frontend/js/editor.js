@@ -658,10 +658,13 @@
       }, { passive: false });
       this.svg.addEventListener('dblclick', (e) => {
         const compEl = e.target.closest('.comp');
-        if (compEl) {
-          const comp = this.findComp(compEl.dataset.comp);
-          if (comp && (comp.type === 'AMP' || comp.type === 'OPAMP')) this.rotateSelected();
-        }
+        const id = compEl ? compEl.dataset.comp : this.lastCompId;
+        const comp = id ? this.findComp(id) : null;
+        if (!comp) return;
+        e.preventDefault();
+        this.select({ kind: 'comp', id: comp.id });
+        // 面板常驻，并让参数输入框获得焦点，双击后可以直接改数值
+        this.emit('activate', this.selection);
       });
       document.addEventListener('keydown', (e) => {
         const tag = (e.target.tagName || '').toLowerCase();
@@ -686,7 +689,7 @@
       const middle = e.button === 1;
       if (e.button !== 0 && !middle) return;
       // 引脚点击交给 click 处理，避免 pointerdown 时重建 DOM
-      if (!middle && e.target.closest('[data-pin]')) return;
+      if (!middle && e.target.closest('[data-pin]')) { this.pressComp = null; return; }
 
       const compEl = e.target.closest('.comp');
       if (compEl && !middle) {
@@ -696,6 +699,10 @@
         this._markSelection({ kind: 'comp', id: comp.id });
         const p = this.toSvg(e.clientX, e.clientY);
         this.drag = { id: comp.id, dx: comp.x - p.x, dy: comp.y - p.y, moved: false };
+        // 记下按下的元件：setPointerCapture 会把后续 click 的 target 重定向到画布，
+        // 需要靠它区分「点在元件上」与「点在空白处」
+        this.pressComp = comp.id;
+        this.lastCompId = comp.id;
         try { this.svg.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
         this.emit('select', this.selection);
         return;
@@ -703,6 +710,7 @@
 
       // 空白处（或中键）：平移画布
       if (!middle && e.target.closest('[data-wire]')) return;
+      this.pressComp = null;
       e.preventDefault();
       this.pan = { sx: e.clientX, sy: e.clientY, moved: false };
       this.svg.classList.add('panning');
@@ -720,10 +728,24 @@
     }
 
     _onClick(e) {
+      const pressedId = this.pressComp;
+      this.pressComp = null;
       if (this._suppressClick) {
         this._suppressClick = false;
         return;
       }
+
+      // 在元件上按下并松手：保持选中，参数面板常驻（click 的 target 可能被指针捕获重定向）
+      if (pressedId) {
+        const comp = this.findComp(pressedId);
+        if (comp) {
+          if (!this.selection || this.selection.kind !== 'comp' || this.selection.id !== pressedId) {
+            this.select({ kind: 'comp', id: pressedId });
+          }
+          return;
+        }
+      }
+
       const pinEl = e.target.closest('[data-pin]');
       if (pinEl) {
         const ref = { comp: pinEl.dataset.comp, pin: pinEl.dataset.pin };
@@ -754,6 +776,7 @@
       if (e.target.closest('.comp')) return;
 
       // 点击空白处：取消连线与选中
+      this.lastCompId = null;
       if (this.pending || this.selection) {
         this.pending = null;
         this.selection = null;
