@@ -104,7 +104,7 @@ H(s) = ────────────────────────�
 
 ### 方式一：直接运行（推荐给没有 Python 环境的同学）
 
-1. 打开 [Releases](../../releases) 页面，下载 `电路传递函数实验台-Windows-x64.zip`；
+1. 打开 [Releases](../../releases) 页面，下载 `CircuitTFLab-v1.0.0-Windows-x64.zip`；
 2. 解压到任意目录，双击 `CircuitTFLab.exe`；
 3. 程序会在本机启动服务并自动打开浏览器（默认 <http://127.0.0.1:8848>，
    端口被占用时自动顺延）；
